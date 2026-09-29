@@ -1,0 +1,9 @@
+venv/
+build/
+dist/
+__pycache__/
+*.pyc
+.DS_Store
+*.spec
+MyIcon.iconset/
+icon_fixed.png
