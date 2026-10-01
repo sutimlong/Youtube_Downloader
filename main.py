@@ -40,6 +40,80 @@ class App(ctk.CTk):
         self.is_downloading = False
 
         self.setup_ui()
+        self.after(100, self.check_and_download_ffmpeg)
+
+    def check_and_download_ffmpeg(self):
+        import shutil
+        ffmpeg_path = shutil.which("ffmpeg")
+        if not ffmpeg_path:
+            for path in ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg"]:
+                if os.path.exists(path):
+                    ffmpeg_path = path
+                    break
+        
+        app_dir = os.path.expanduser("~/.youtube_downloader_app")
+        local_ffmpeg = os.path.join(app_dir, "ffmpeg")
+        
+        if not ffmpeg_path and os.path.exists(local_ffmpeg):
+            ffmpeg_path = local_ffmpeg
+            
+        if ffmpeg_path:
+            self.ffmpeg_path = ffmpeg_path
+            self.status_label.configure(text="Ready", text_color="black")
+            self.fetch_btn.configure(state="normal")
+            return
+            
+        self.ffmpeg_path = None
+        self.status_label.configure(text="Downloading ffmpeg (required)...", text_color="yellow")
+        self.fetch_btn.configure(state="disabled")
+        self.download_btn.configure(state="disabled")
+        
+        threading.Thread(target=self.download_ffmpeg_thread, args=(app_dir, local_ffmpeg), daemon=True).start()
+        
+    def download_ffmpeg_thread(self, app_dir, local_ffmpeg):
+        try:
+            os.makedirs(app_dir, exist_ok=True)
+            import zipfile
+            import urllib.request
+            import ssl
+            
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            
+            url = "https://evermeet.cx/ffmpeg/getrelease/zip"
+            zip_path = os.path.join(app_dir, "ffmpeg.zip")
+            
+            with urllib.request.urlopen(url, context=ctx) as response, open(zip_path, 'wb') as out_file:
+                total_size = int(response.info().get('Content-Length', -1))
+                block_size = 8192
+                count = 0
+                while True:
+                    data = response.read(block_size)
+                    if not data:
+                        break
+                    out_file.write(data)
+                    count += 1
+                    if total_size > 0:
+                        percent = min((count * block_size * 100) / total_size, 100)
+                        self.after(0, self.update_progress, percent / 100.0, f"Downloading ffmpeg: {int(percent)}%")
+            
+            self.after(0, self.update_progress, 1.0, "Extracting ffmpeg...")
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(app_dir)
+                
+            os.remove(zip_path)
+            os.chmod(local_ffmpeg, 0o755)
+            
+            self.ffmpeg_path = local_ffmpeg
+            self.after(0, self.ffmpeg_download_complete)
+        except Exception as e:
+            self.after(0, self.show_error, f"Failed to download ffmpeg: {str(e)}")
+
+    def ffmpeg_download_complete(self):
+        self.status_label.configure(text="Ready", text_color="black")
+        self.fetch_btn.configure(state="normal")
+        self.progress_bar.set(0)
 
     def setup_ui(self):
         # Title
@@ -100,7 +174,7 @@ class App(ctk.CTk):
         self.progress_bar.pack(padx=20, pady=5, fill="x")
         self.progress_bar.set(0)
         
-        self.status_label = ctk.CTkLabel(self, text="Ready")
+        self.status_label = ctk.CTkLabel(self, text="Ready", text_color="black")
         self.status_label.pack(pady=5)
 
         self.footer_label = ctk.CTkLabel(self, text="蘇廷融製作", font=ctk.CTkFont(size=12), text_color="gray")
@@ -121,7 +195,7 @@ class App(ctk.CTk):
         
         self.fetch_btn.configure(state="disabled")
         self.download_btn.configure(state="disabled")
-        self.status_label.configure(text="Fetching video info...", text_color="white")
+        self.status_label.configure(text="Fetching video info...", text_color="black")
         
         # Run in a thread to prevent freezing
         threading.Thread(target=self.fetch_video_info, args=(url,), daemon=True).start()
@@ -206,13 +280,8 @@ class App(ctk.CTk):
         # Save to Downloads folder
         download_path = os.path.join(os.path.expanduser("~"), "Downloads")
         
-        import shutil
-        ffmpeg_path = shutil.which("ffmpeg")
-        if not ffmpeg_path:
-            for path in ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg"]:
-                if os.path.exists(path):
-                    ffmpeg_path = path
-                    break
+        ffmpeg_path = getattr(self, "ffmpeg_path", None)
+
         
         ydl_opts = {
             'outtmpl': os.path.join(download_path, '%(title)s.%(ext)s'),
@@ -246,7 +315,7 @@ class App(ctk.CTk):
 
         self.is_downloading = True
         self.download_btn.configure(state="disabled", text="Downloading...")
-        self.status_label.configure(text="Starting download...", text_color="white")
+        self.status_label.configure(text="Starting download...", text_color="black")
         self.progress_bar.set(0)
         
         threading.Thread(target=self.start_download, args=(ydl_opts, url, dtype, ffmpeg_path), daemon=True).start()
@@ -277,7 +346,7 @@ class App(ctk.CTk):
 
     def update_progress(self, percent, text):
         self.progress_bar.set(percent)
-        self.status_label.configure(text=text, text_color="white")
+        self.status_label.configure(text=text, text_color="black")
 
     def download_finished(self):
         self.status_label.configure(text="Download Complete! Saved to Downloads folder.", text_color="green")
