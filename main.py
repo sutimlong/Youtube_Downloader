@@ -15,7 +15,7 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Youtube Downloader v1.1.0")
+        self.title("Youtube Downloader v1.2.0")
         self.geometry("600x700")
         self.resizable(False, False)
 
@@ -44,17 +44,27 @@ class App(ctk.CTk):
 
     def check_and_download_ffmpeg(self):
         import shutil
+        import subprocess
+        
+        def is_valid_ffmpeg(path):
+            if not path or not os.path.exists(path): return False
+            try:
+                subprocess.run([path, "-version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+                return True
+            except Exception:
+                return False
+
         ffmpeg_path = shutil.which("ffmpeg")
-        if not ffmpeg_path:
+        if not is_valid_ffmpeg(ffmpeg_path):
             for path in ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg"]:
-                if os.path.exists(path):
+                if is_valid_ffmpeg(path):
                     ffmpeg_path = path
                     break
         
         app_dir = os.path.expanduser("~/.youtube_downloader_app")
         local_ffmpeg = os.path.join(app_dir, "ffmpeg")
         
-        if not ffmpeg_path and os.path.exists(local_ffmpeg):
+        if not is_valid_ffmpeg(ffmpeg_path) and is_valid_ffmpeg(local_ffmpeg):
             ffmpeg_path = local_ffmpeg
             
         if ffmpeg_path:
@@ -125,7 +135,7 @@ class App(ctk.CTk):
 
     def setup_ui(self):
         # Title
-        self.title_label = ctk.CTkLabel(self, text="YouTube Downloader v1.1.0", font=ctk.CTkFont(size=24, weight="bold"))
+        self.title_label = ctk.CTkLabel(self, text="YouTube Downloader v1.2.0", font=ctk.CTkFont(size=24, weight="bold"))
         self.title_label.pack(pady=20)
         
         # FFmpeg Status Indicator
