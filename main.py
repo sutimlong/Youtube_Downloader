@@ -15,7 +15,7 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Youtube Downloader")
+        self.title("Youtube Downloader v1.1.0")
         self.geometry("600x700")
         self.resizable(False, False)
 
@@ -117,7 +117,7 @@ class App(ctk.CTk):
 
     def setup_ui(self):
         # Title
-        self.title_label = ctk.CTkLabel(self, text="YouTube Downloader", font=ctk.CTkFont(size=24, weight="bold"))
+        self.title_label = ctk.CTkLabel(self, text="YouTube Downloader v1.1.0", font=ctk.CTkFont(size=24, weight="bold"))
         self.title_label.pack(pady=20)
 
         # URL Input
