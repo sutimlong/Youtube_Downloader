@@ -15,7 +15,7 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Youtube Downloader v1.2.0")
+        self.title("Youtube Downloader v1.2.1")
         self.geometry("600x700")
         self.resizable(False, False)
 
@@ -88,12 +88,18 @@ class App(ctk.CTk):
             import zipfile
             import urllib.request
             import ssl
+            import platform
             
             ctx = ssl.create_default_context()
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
             
-            url = "https://evermeet.cx/ffmpeg/getrelease/zip"
+            arch = platform.machine()
+            if arch == "arm64":
+                url = "https://www.osxexperts.net/ffmpeg9arm.zip"
+            else:
+                url = "https://evermeet.cx/ffmpeg/getrelease/zip"
+                
             zip_path = os.path.join(app_dir, "ffmpeg.zip")
             
             with urllib.request.urlopen(url, context=ctx) as response, open(zip_path, 'wb') as out_file:
@@ -117,6 +123,9 @@ class App(ctk.CTk):
             os.remove(zip_path)
             os.chmod(local_ffmpeg, 0o755)
             
+            import subprocess
+            subprocess.run([local_ffmpeg, "-version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+            
             self.ffmpeg_path = local_ffmpeg
             self.after(0, self.ffmpeg_download_complete)
         except Exception as e:
@@ -135,7 +144,7 @@ class App(ctk.CTk):
 
     def setup_ui(self):
         # Title
-        self.title_label = ctk.CTkLabel(self, text="YouTube Downloader v1.2.0", font=ctk.CTkFont(size=24, weight="bold"))
+        self.title_label = ctk.CTkLabel(self, text="YouTube Downloader v1.2.1", font=ctk.CTkFont(size=24, weight="bold"))
         self.title_label.pack(pady=20)
         
         # FFmpeg Status Indicator
