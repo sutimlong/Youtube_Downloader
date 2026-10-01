@@ -60,11 +60,13 @@ class App(ctk.CTk):
         if ffmpeg_path:
             self.ffmpeg_path = ffmpeg_path
             self.status_label.configure(text="Ready", text_color="black")
+            self.ffmpeg_status_label.configure(text="🟢 FFmpeg: 已準備就緒", text_color="green")
             self.fetch_btn.configure(state="normal")
             return
             
         self.ffmpeg_path = None
-        self.status_label.configure(text="Downloading ffmpeg (required)...", text_color="yellow")
+        self.status_label.configure(text="Downloading ffmpeg (required)...", text_color="orange")
+        self.ffmpeg_status_label.configure(text="🟡 FFmpeg: 下載中...", text_color="orange")
         self.fetch_btn.configure(state="disabled")
         self.download_btn.configure(state="disabled")
         
@@ -108,10 +110,16 @@ class App(ctk.CTk):
             self.ffmpeg_path = local_ffmpeg
             self.after(0, self.ffmpeg_download_complete)
         except Exception as e:
-            self.after(0, self.show_error, f"Failed to download ffmpeg: {str(e)}")
+            self.after(0, self.ffmpeg_download_error, f"Failed to download ffmpeg: {str(e)}")
 
+    def ffmpeg_download_error(self, message):
+        self.status_label.configure(text=message, text_color="red")
+        self.ffmpeg_status_label.configure(text="🔴 FFmpeg: 下載失敗", text_color="red")
+        self.fetch_btn.configure(state="normal")
+        
     def ffmpeg_download_complete(self):
         self.status_label.configure(text="Ready", text_color="black")
+        self.ffmpeg_status_label.configure(text="🟢 FFmpeg: 已準備就緒", text_color="green")
         self.fetch_btn.configure(state="normal")
         self.progress_bar.set(0)
 
@@ -119,6 +127,10 @@ class App(ctk.CTk):
         # Title
         self.title_label = ctk.CTkLabel(self, text="YouTube Downloader v1.1.0", font=ctk.CTkFont(size=24, weight="bold"))
         self.title_label.pack(pady=20)
+        
+        # FFmpeg Status Indicator
+        self.ffmpeg_status_label = ctk.CTkLabel(self, text="🔴 FFmpeg: 檢查中...", text_color="orange", font=ctk.CTkFont(size=12, weight="bold"))
+        self.ffmpeg_status_label.pack(pady=(0, 10))
 
         # URL Input
         self.url_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -188,6 +200,11 @@ class App(ctk.CTk):
                 self.quality_dropdown.configure(state="normal")
 
     def on_fetch_clicked(self):
+        if not getattr(self, "ffmpeg_path", None):
+            self.status_label.configure(text="FFmpeg 尚未準備好，正在嘗試重新下載...", text_color="yellow")
+            self.check_and_download_ffmpeg()
+            return
+
         url = self.url_entry.get().strip()
         if not url:
             self.status_label.configure(text="Please enter a valid URL.", text_color="red")
@@ -272,6 +289,10 @@ class App(ctk.CTk):
         self.fetch_btn.configure(state="normal")
 
     def on_download_clicked(self):
+        if not getattr(self, "ffmpeg_path", None):
+            self.status_label.configure(text="FFmpeg 尚未準備好，無法下載！", text_color="red")
+            return
+            
         if self.is_downloading:
             return
             
