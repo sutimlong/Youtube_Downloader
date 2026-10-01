@@ -204,7 +204,9 @@ class App(ctk.CTk):
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
-            'noplaylist': True
+            'noplaylist': True,
+            'nocheckcertificate': True,
+            'socket_timeout': 60
         }
         if os.path.exists('/opt/homebrew/bin/node'):
             ydl_opts['js_runtimes'] = {'node': {'path': '/opt/homebrew/bin/node'}}
@@ -288,6 +290,8 @@ class App(ctk.CTk):
             'progress_hooks': [self.download_progress_hook],
             'noplaylist': True,
             'overwrites': True,
+            'nocheckcertificate': True,
+            'socket_timeout': 60,
         }
         
         if os.path.exists('/opt/homebrew/bin/node'):
